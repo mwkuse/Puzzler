@@ -1,5 +1,6 @@
 # Sudokdo or Puzzler
 Maxwell Kuse's Spring 2023 Capstone Project
+
 GitHub Username: mwkuse
 
 # Summary
