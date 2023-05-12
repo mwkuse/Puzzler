@@ -30,9 +30,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  firebase_auth: ^3.11.2
-  firebase_core: ^1.24.0
-  firebase_database: ^9.1.7
+  firebase_auth: ^4.5.0
+  firebase_core: ^2.11.0
+  firebase_database: ^10.1.2
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -40,6 +40,7 @@ dependencies:
   sudoku_solver_generator: ^2.1.0+1
   quiver: ^3.2.1
   flutterfire_ui: ^0.4.3+14
+  cloud_firestore: ^4.7.0
 
 dev_dependencies:
   flutter_test:

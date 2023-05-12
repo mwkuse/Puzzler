@@ -2,9 +2,14 @@ import 'dart:math';
 
 import 'package:final_project/boxChar.dart';
 import 'package:final_project/boxInner.dart';
+import 'package:final_project/main.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:final_project/focusClass.dart';
 import 'package:quiver/iterables.dart';
+import 'package:quiver/strings.dart';
 import 'package:sudoku_solver_generator/sudoku_solver_generator.dart';
 import 'package:final_project/leaderboard.dart';
 
@@ -20,6 +25,7 @@ class _SudokuBoardState extends State<SudokuBoard> {
   FocusClass focusClass = FocusClass();
   bool isFinish = false;
   String? tapBoxIndex;
+  int? gamesWon;
 
   @override
   void initState() {
@@ -27,27 +33,90 @@ class _SudokuBoardState extends State<SudokuBoard> {
     super.initState();
   }
 
-  void generateSudoku() {
+  Future<void> generateSudoku() async {
     isFinish = false;
     focusClass = new FocusClass();
     tapBoxIndex = null;
+    gamesWon = await getScore();
     generatePuzzle();
     checkFinish();
     setState(() {});
+  }
+
+  Future<int> getScore() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return 0;
+    try {
+      final uid = currentUser.uid;
+      // Get the previous score
+      final scoreRef = FirebaseDatabase.instance.ref('leaderboard/$uid');
+      final userScoreResult = await scoreRef.child('score').once();
+      final score = (userScoreResult.snapshot.value as int?) ?? 0;
+      if (score == 0) {
+        await scoreRef.set({
+          'name': "user",
+          'score': score,
+        });
+      }
+      return score;
+    } catch (e) {
+      // handle error
+      if (kDebugMode) {
+        print("error: $e");
+      }
+    }
+    return 0;
+  }
+
+  Future<void> incrementScore() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+    try {
+      final uid = currentUser.uid;
+      // Get the previous score
+      final scoreRef = FirebaseDatabase.instance.ref('leaderboard/$uid');
+      final userScoreResult = await scoreRef.child('score').once();
+      final score = (userScoreResult.snapshot.value as int?) ?? 0;
+      int newScore = score + 1;
+      if (score == 0) {
+        await scoreRef.set({
+          'score': newScore,
+        });
+      }
+    } catch (e) {
+      // handle error
+      if (kDebugMode) {
+        print("error: $e");
+      }
+    }
+    return;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: ElevatedButton(
+          onPressed: () => _signOut(),
+          child: const Icon(Icons.logout),
+        ),
         actions: [
-          ElevatedButton(
-            onPressed: () => generateSudoku(),
-            child: const Icon(Icons.leaderboard_outlined),
-          ),
-          ElevatedButton(
-            onPressed: () => generateSudoku(),
-            child: const Icon(Icons.refresh),
+          Row(
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const LeaderboardView()));
+                },
+                child: const Icon(Icons.leaderboard_outlined),
+              ),
+              ElevatedButton(
+                onPressed: () => generateSudoku(),
+                child: const Icon(Icons.refresh),
+              ),
+            ],
           ),
         ],
         title: const Text("SUDOKDO"),
@@ -95,9 +164,10 @@ class _SudokuBoardState extends State<SudokuBoard> {
                           BoxNum boxNum = boxInner.boxNums[indexNum];
                           Color color = Colors.yellow.shade100;
                           Color colorNum = Colors.black;
-                          if (isFinish)
+                          if (isFinish) {
                             color = Colors.green;
-                          else if (boxNum.isFocus && boxNum.text != "")
+                            incrementScore();
+                          } else if (boxNum.isFocus && boxNum.text != "")
                             color = Colors.grey.shade400;
                           else if (boxNum.isDefault)
                             color = Colors.grey.shade400;
@@ -127,6 +197,10 @@ class _SudokuBoardState extends State<SudokuBoard> {
                     );
                   },
                 ),
+              ),
+              Text(
+                "Games Won: $gamesWon",
+                style: TextStyle(color: Colors.white),
               ),
               Expanded(
                 child: Container(
@@ -196,7 +270,7 @@ class _SudokuBoardState extends State<SudokuBoard> {
   generatePuzzle() {
     // install sudoku generator pluggins to generate
     boxInners.clear();
-    var sudokuGenerator = SudokuGenerator(emptySquares: 54);
+    var sudokuGenerator = SudokuGenerator(emptySquares: 40);
     // then populate to get a possible combination
     List<List<List<int>>> completes = partition(sudokuGenerator.newSudokuSolved,
             sqrt(sudokuGenerator.newSudoku.length).toInt())
@@ -235,6 +309,11 @@ class _SudokuBoardState extends State<SudokuBoard> {
       },
     );
     //print(boxInners);
+  }
+
+  Future<void> _signOut() async {
+    await FirebaseAuth.instance.signOut();
+    runApp(const MyApp());
   }
 
   setFocus(int index, int indexNum) {
