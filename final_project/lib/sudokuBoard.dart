@@ -9,7 +9,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:final_project/focusClass.dart';
 import 'package:quiver/iterables.dart';
-import 'package:quiver/strings.dart';
 import 'package:sudoku_solver_generator/sudoku_solver_generator.dart';
 import 'package:final_project/leaderboard.dart';
 
@@ -78,11 +77,9 @@ class _SudokuBoardState extends State<SudokuBoard> {
       final userScoreResult = await scoreRef.child('score').once();
       final score = (userScoreResult.snapshot.value as int?) ?? 0;
       int newScore = score + 1;
-      if (score == 0) {
-        await scoreRef.set({
-          'score': newScore,
-        });
-      }
+      await scoreRef.set({
+        'score': newScore,
+      });
     } catch (e) {
       // handle error
       if (kDebugMode) {
@@ -270,7 +267,7 @@ class _SudokuBoardState extends State<SudokuBoard> {
   generatePuzzle() {
     // install sudoku generator pluggins to generate
     boxInners.clear();
-    var sudokuGenerator = SudokuGenerator(emptySquares: 40);
+    var sudokuGenerator = SudokuGenerator(emptySquares: 35);
     // then populate to get a possible combination
     List<List<List<int>>> completes = partition(sudokuGenerator.newSudokuSolved,
             sqrt(sudokuGenerator.newSudoku.length).toInt())
